@@ -1,0 +1,10 @@
+celery-redbeat==2.0.0
+celery==5.2.7
+flask-restful==0.3.9
+Flask==2.2.5
+Flask-Cors==1.10.3
+redis==3.5.3
+requests==2.26.0
+urllib3==1.26.7
+wcwidth==0.2.5
+werkzeug==2.2.2
