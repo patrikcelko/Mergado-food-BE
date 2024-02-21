@@ -1,0 +1,44 @@
+version: "3.7"
+services:
+  web:
+    container_name: food_api
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+     - "5000:5000"
+    depends_on:
+      - redis
+      - worker
+      - schedule
+    volumes: ['./app:/app']
+  worker:
+    container_name: food_celery
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    command: celery -A tasks worker -l info
+    environment:
+      CELERY_BROKER_URL: redis://redis
+      CELERY_RESULT_BACKEND: redis://redis
+    depends_on:
+      - redis
+    volumes: ['./app:/queue']
+  schedule:
+    container_name: food_schedule
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    command: celery -A tasks beat -l info
+    environment:
+      CELERY_BROKER_URL: redis://redis
+      CELERY_RESULT_BACKEND: redis://redis
+    depends_on:
+      - redis
+    volumes: ['./app:/schedule']
+  redis:
+    container_name: food_redis
+    image: redis:alpine
+    ports:
+      - "6379:6379"
