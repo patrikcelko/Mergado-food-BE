@@ -10,5 +10,6 @@ class DnoCafeRestaurant(BaseRestaurant):
     _NAME = 'Dno Restaurant & Café'
     _ACCEPTS_CARD = False
 
-    def scrape(self) -> None:
-        pass  # TODO implement
+    def scrape(self) -> bool:
+        # TODO implement
+        return True

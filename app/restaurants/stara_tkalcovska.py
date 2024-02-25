@@ -10,5 +10,6 @@ class StaraTkalcovskaRestaurant(BaseRestaurant):
     _NAME = 'Restaurant Stara Tkalcovna'
     _ACCEPTS_CARD = False
 
-    def scrape(self) -> None:
-        pass  # TODO implement
+    def scrape(self) -> bool:
+        # TODO implement
+        return True

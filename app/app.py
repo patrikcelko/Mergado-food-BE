@@ -55,9 +55,12 @@ class RestaurantResource(Resource):
     )
     CoerceWith(CoerceWith.RESTAURANT_FIELDS)
     def get(self, day: Optional[str] = None, restaurant: Optional[str] = None):
+        data: list = RestaurantsManager.get_restaurants_data(day, restaurant)
+
         return {
             'loaded_scrapers': len(RESTAURANTS),
-            'data': RestaurantsManager.get_restaurant_data(day, restaurant)
+            'data_size': len(data),
+            'data': data,
         }
 
 
@@ -77,6 +80,9 @@ class ScraperResource(Resource):
             'failed_scrapers': failed
         }
 
+
+if DEBUG_MODE:
+    logging.basicConfig(level=logging.DEBUG)
 
 if __name__ == '__main__':
     app.run(debug=DEBUG_MODE, host=IP, port=PORT)
