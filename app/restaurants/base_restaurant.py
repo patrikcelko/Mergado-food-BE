@@ -8,6 +8,7 @@ from flask_restful import fields
 from redis import Redis
 from abc import abstractmethod
 from utility import WeekDays, create_brno_like_address
+from config import REDIS_PORT, REDIS_SERVICE
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -15,10 +16,6 @@ if TYPE_CHECKING:
 
 
 _UNKNOWN_VALUE: str = 'Unknown Value'
-
-# REDIS CONFIG
-REDIS_IP: str = 'localhost'
-REDIS_PORT: int = 6379
 
 
 class RestaurantMeal:
@@ -99,7 +96,7 @@ class BaseRestaurant:
     def __init__(self, force_scrape: bool = False, ignore_loading: bool = False) -> None:
         self._last_scraping: Optional[datetime] = None
 
-        self.redis_client: Redis = Redis(host='redis', port=6379, decode_responses=True)
+        self.redis_client: Redis = Redis(host=REDIS_SERVICE, port=REDIS_PORT, decode_responses=False)
         # If the client does not response directly kill app by exception
         self.redis_client.ping()
 

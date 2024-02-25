@@ -12,11 +12,12 @@ import os
 import time
 
 from celery import Celery
-from restaurants import RESTAURANTS, RestaurantsManager
+from restaurants import RESTAURANTS, RestaurantsFactory
+from config import REDIS_PORT, REDID_IP
 
 
-CELERY_BROKER_URL: str = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379'),
-CELERY_RESULT_BACKEND: str = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379')
+CELERY_BROKER_URL: str = os.environ.get('CELERY_BROKER_URL', f'redis://{REDIS_PORT}:{REDIS_PORT}'),
+CELERY_RESULT_BACKEND: str = os.environ.get('CELERY_RESULT_BACKEND', f'redis://{REDIS_PORT}:{REDIS_PORT}')
 TASK_REPEAT_TIME: int = 3600  # 1 hour
 
 
@@ -54,6 +55,6 @@ def scrape(force_scraping: bool = False) -> None:
     start_time: float = time.time()
 
     # Execute scraping on all restaurants
-    failed: int = RestaurantsManager.execute_scraping(force_scraping)
+    failed: int = RestaurantsFactory.execute_scraping(force_scraping)
 
     logging.info(f'Scraping was done in {(time.time() - start_time):.2f}s, {failed} scrapers failed.')

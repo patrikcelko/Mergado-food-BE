@@ -14,18 +14,13 @@ from flask_cors import CORS
 from flask_restful import Api, Resource, abort, marshal_with, fields
 
 from utility import CoerceWith
-from restaurants import RESTAURANTS, RestaurantsManager, BaseRestaurant
+from restaurants import RESTAURANTS, RestaurantsFactory, BaseRestaurant
+from config import *
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Optional
 
-
-# CONFIG
-DEBUG_MODE: bool = True  # Change this to `False` in production
-VERSION: str = '1.0'
-PORT: int = 5000
-IP: str = '0.0.0.0'
 
 # FLASK
 app: Flask = Flask(__name__)
@@ -55,7 +50,7 @@ class RestaurantResource(Resource):
     )
     CoerceWith(CoerceWith.RESTAURANT_FIELDS)
     def get(self, day: Optional[str] = None, restaurant: Optional[str] = None):
-        data: list = RestaurantsManager.get_restaurants_data(day, restaurant)
+        data: list = RestaurantsFactory.get_restaurants_data(day, restaurant)
 
         return {
             'loaded_scrapers': len(RESTAURANTS),
@@ -73,7 +68,7 @@ class ScraperResource(Resource):
         if not DEBUG_MODE:
             abort(404)
 
-        failed: int = RestaurantsManager.execute_scraping(force_scraping=True)
+        failed: int = RestaurantsFactory.execute_scraping(force_scraping=True)
         logging.warning(f'{failed} scrapers failed during forced scraping.')
 
         return {

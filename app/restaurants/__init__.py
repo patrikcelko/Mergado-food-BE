@@ -41,7 +41,7 @@ RESTAURANTS: List[Type] = [
     ThalieRestaurant, UTrechCertuRestaurant, VeselaCajovnaRestaurant,
 ]
 
-class RestaurantsManager:
+class RestaurantsFactory:
     """Simple restaurant manager."""
 
     @staticmethod
@@ -117,4 +117,4 @@ class RestaurantsManager:
         return resulting_restaurants
 
 
-__all__ = ('BaseRestaurant', 'RestaurantsManager')
+__all__ = ('BaseRestaurant', 'RestaurantsFactory')
