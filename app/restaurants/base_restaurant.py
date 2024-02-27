@@ -9,6 +9,8 @@ from redis import Redis
 from abc import abstractmethod
 from utility import WeekDays, create_brno_like_address
 from config import REDIS_PORT, REDIS_SERVICE
+from selenium.webdriver import Chrome
+from selenium.webdriver.chrome.options import Options
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -23,18 +25,19 @@ class RestaurantMeal:
     MEAL_FIELDS: dict = {
         'name': fields.String, 'price': fields.Float, 'description': fields.String,
         'alergens': fields.List(fields.String), 'is_vegan': fields.Boolean,
-        'is_gluten_free': fields.Boolean
+        'is_gluten_free': fields.Boolean, 'is_soup': fields.Boolean,
     }
 
     # NOTE: Float is not the best type for curency butt here it should do the job
     def __init__(self, name: str, price: float, description: Optional[str], alergens: Optional[List[str]],
-                 is_vegan: bool = False, is_gluten_free: bool = False) -> None:
+                 is_vegan: bool = False, is_gluten_free: bool = False, is_soup: bool = False) -> None:
         self.name: str = name
         self.price: float = price
         self.description: str = description
         self.alergens: List['str'] = alergens
         self.is_vegan: bool = is_vegan
         self.is_gluten_free: bool = is_gluten_free
+        self.is_soup: bool = is_soup
 
     def to_dict(self) -> dict:
         """Returns meal as dictonary."""
@@ -46,14 +49,16 @@ class RestaurantMeal:
             'alergens': self.alergens,
             'is_vegan': self.is_vegan,
             'is_gluten_free': self.is_gluten_free,
+            'is_soup': self.is_soup,
         }
 
     @staticmethod
     def from_dict(raw_dict: dict) -> RestaurantMeal:
         """Deserialize meal from the dict."""
 
-        return RestaurantMeal(raw_dict.name, raw_dict.price, raw_dict.description, raw_dict.alergens,
-                              raw_dict.is_vegan, raw_dict.is_gluten_free)
+        return RestaurantMeal(raw_dict.get('name', 'ERROR'), raw_dict.get('price', 0.0), raw_dict.get('description', ''),
+                              raw_dict.get('alergens', []), raw_dict.get('is_vegan', False),
+                              raw_dict.get('is_gluten_free', False), raw_dict.get('is_soup', False))
 
     @staticmethod
     def serialize_meals(data: Dict[str, List[RestaurantMeal]]) -> str:
@@ -72,10 +77,15 @@ class RestaurantMeal:
     def deserialize_meals(raw_meals: str) -> Dict[str, List[RestaurantMeal]]:
         """Try to get meals from Redis based on `restaurant_id`."""
 
-        data: Dict[str, List[dict]] = json.loads(raw_meals)
-        for _, meals in data.items():
+        return_data: Dict[str, List[dict]] = {}
+
+        for day, meals in json.loads(raw_meals).items():
+            if isinstance(day, tuple):
+                day = day[0]
             meals = list(map(lambda meal_raw: RestaurantMeal.from_dict(meal_raw), meals))
-        return data
+            return_data[day] = meals
+
+        return return_data
 
 
 class BaseRestaurant:
@@ -93,8 +103,33 @@ class BaseRestaurant:
     # Creating empty meals
     MEALS: Dict[str, List[RestaurantMeal]] = dict(map(lambda day: (day, []), WeekDays.all_days()))
 
-    def __init__(self, force_scrape: bool = False, ignore_loading: bool = False) -> None:
+    def _init_scrapers(self) -> None:
+        """Initialise selenium scraper."""
+
+        if self.web_driver is not None:
+            return  # It is already initialised.
+
+        chrome_options: Options = Options()
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36'")
+
+        # Selenium scraper
+        self.web_driver = Chrome(options=chrome_options)
+        self.web_driver.get(self._URL)
+        self.web_driver.implicitly_wait(0.5)  # Load page
+
+        logging.info(f'Startig scraping for page "{self.web_driver.title}".')
+
+
+    def __init__(self, force_scrape: bool = False, ignore_loading: bool = False, init_scaper: bool = False) -> None:
         self._last_scraping: Optional[datetime] = None
+        self.web_driver: Optional[Chrome] = None
+
+        if init_scaper:
+            self._init_scrapers()
 
         self.redis_client: Redis = Redis(host=REDIS_SERVICE, port=REDIS_PORT, decode_responses=False)
         # If the client does not response directly kill app by exception
@@ -109,6 +144,10 @@ class BaseRestaurant:
         # replace by  new one.
         if not ignore_loading:
             self.load_meals(force_scrape=force_scrape)  # Load meals from redis, or scrape them
+
+    def __del__(self):
+        if self.web_driver is not None:
+            self.web_driver.close()
 
     @property
     def address(self) -> str:
@@ -192,6 +231,15 @@ class BaseRestaurant:
             'meals': meals_data
         }
 
+    def add_meal(self, day: str, name: str, price: float, description: Optional[str] = None,
+                 alergens: Optional[List[str]] = None, is_vegan: bool = False,
+                 is_gluten_free: bool = False, is_soup: bool = False) -> bool:
+
+        self.MEALS[day].append(RestaurantMeal(name, price, description, alergens, is_vegan,
+                                              is_gluten_free, is_soup))
+        logging.debug(f'Successfully added meal for day {day} with data: {self.MEALS[day][-1]}.')
+        return True
+
     def load_meals(self, force_scrape: bool = False) -> None:
         """Load meals from redis if possible."""
 
@@ -201,6 +249,7 @@ class BaseRestaurant:
         if force_scrape or not raw_meals:
             # During scraping we should already fill MEALS atribute
             logging.debug(f'Starting scraping for restaurant {self.name} in load request.')
+            self._init_scrapers()  # Try to init scraper if is not already initialised
             self.scrape()
             return self.save_meals()
 
@@ -214,4 +263,3 @@ class BaseRestaurant:
 
         logging.debug(f'Starting meals serialization (saving) for restaurant {self.name}.')
         self.redis_client.set(redis_key, RestaurantMeal.serialize_meals(self.MEALS))
-

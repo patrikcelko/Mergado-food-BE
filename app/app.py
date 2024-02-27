@@ -12,6 +12,7 @@ import logging
 from flask import Flask
 from flask_cors import CORS
 from flask_restful import Api, Resource, abort, marshal_with, fields
+from tasks import scrape
 
 from utility import CoerceWith
 from restaurants import RESTAURANTS, RestaurantsFactory, BaseRestaurant
@@ -81,3 +82,7 @@ if DEBUG_MODE:
 
 if __name__ == '__main__':
     app.run(debug=DEBUG_MODE, host=IP, port=PORT)
+
+    # If we are not in debug mode initialise all data on start
+    if not DEBUG_MODE:
+        scrape(force_scraping=True)

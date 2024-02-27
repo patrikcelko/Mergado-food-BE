@@ -6,22 +6,29 @@ Collection of miscellaneous functions used in this app.
 """
 
 from __future__ import annotations
+
+import os
+import uuid
+import pytesseract
+
 from collections import defaultdict
 from copy import deepcopy
-
 from enum import Enum
 from functools import wraps
 from flask import Request, abort
 from flask_restful import fields, reqparse
 from flask import request as flask_request
-
+from PIL import Image
 
 from typing import TYPE_CHECKING, Iterable
+
+import urllib3
 if TYPE_CHECKING:
     from typing import List, Callable, Optional
 
 
 BRNO_CITY_CODE_ADDRESS: str = 'Brno (602 00)'
+TEMP_FILE_PATH: str = os.path.join(os.path.realpath(__file__), 'temp')
 
 
 class WeekDays(Enum):
@@ -189,3 +196,16 @@ class CoerceWith:
 
         data: dict = parser.parse_args(req=request)
         return {k: v for k, v in data.items() if v is not None or k in nullables}
+
+
+def download_image(url: str) -> None:
+    """Download image from URL and save it to temp file."""
+
+    img_hash: str = uuid.uuid4().hex
+    urllib3.urlretrieve(url, os.path.join(TEMP_FILE_PATH, f'{img_hash}.png'))
+
+
+def image_to_text(image_name: str) -> str:
+    """Retrieve text from image and returns it."""
+
+    return pytesseract.image_to_string(Image.open(os.path.join(TEMP_FILE_PATH, image_name)))

@@ -59,10 +59,11 @@ class RestaurantsFactory:
             restaurant_instance: Optional[BaseRestaurant] = None
 
             try:
-                restaurant_instance = restaurant()
+                restaurant_instance = restaurant(init_scaper=True)
                 restaurant_name = restaurant_instance.name
                 logging.info(f'Starting scraping for restauran {restaurant_instance.name}.')
                 time_diff: datetime = datetime.now() - restaurant_instance.last_scraping
+                restaurant_instance.last_scraping = datetime.now()
 
                 if force_scraping or time_diff.second > SCRAPING_INTERVAL:
                     fail_already_detected = not restaurant_instance.scrape()

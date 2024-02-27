@@ -15,12 +15,17 @@ ENV C_FORCE_ROOT true
 # Flask setup
 ENV HOST 0.0.0.0
 ENV PORT 5000
-ENV DEBUG true
 
 COPY . /app
 WORKDIR /app
 
-# INstaling requirements
+RUN apk add chromium
+RUN apk add chromium-chromedriver
+
+# Set display port to avoid crash
+ENV DISPLAY=:99
+
+# Instaling requirements
 RUN pip install -U setuptools pip
 RUN pip install -r requirements.txt
 

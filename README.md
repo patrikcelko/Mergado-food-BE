@@ -4,7 +4,7 @@ Simple API is written in Python which would return a list of menus for restauran
 
 ## Starting application
 
-For better compatibility whole backend is contained in a docker container (4 containers: `redis`, `worker`, `web`, `scheduler`) which can be simply run using the included shell script `start.sh` (it will rebuild and start container).
+For better compatibility whole backend is contained in a docker containers (4 containers: `redis`, `worker`, `web`, `scheduler`) which can be simply run using the included shell script `start.sh` (it will rebuild and start container).
 
 ## Adding a new restaurant
 
